@@ -3,6 +3,7 @@ import warnings
 
 import numpy as np
 import scipy.signal as spsignal
+from scipy.signal.filter_design import freqz
 
 from pyfar import Signal
 
@@ -55,7 +56,8 @@ class Filter(object):
             self,
             coefficients=None,
             filter_func=None,
-            state=None):
+            state=None,
+            freqz_func=None):
         """
         Initialize a general Filter object.
 
@@ -96,6 +98,9 @@ class Filter(object):
         self._FILTER_FUNCS = {
             'default': None,
             'zerophase': None}
+
+        self._FREQZ_FUNCS = [
+            spsignal.freqz, spsignal.sosfreqz]
 
     def initialize(self):
         raise NotImplementedError("Abstract class method")
@@ -184,6 +189,14 @@ class Filter(object):
             warnings.warn(
                 "No previous state was set. Initialize a filter state first.")
 
+    def frequency_response(self, n_bins=512):
+        """Return the frequency response of the filter object for each channel.
+        """
+        freq_resp = np.zeros(np.r_[self.shape, n_bins])
+        for idx, coeff in enumerate(self._coefficients):
+            freq_resp[idx] = self.freqz_func(self._coefficients)
+        return freq_resp
+
 
 class FilterFIR(Filter):
     """
@@ -192,7 +205,8 @@ class FilterFIR(Filter):
     def __init__(
             self,
             coefficients,
-            filter_func=lfilter):
+            filter_func=lfilter,
+            freqz_func=spsignal.freqz):
         """
         Initialize a general Filter object.
 
@@ -240,7 +254,8 @@ class FilterIIR(Filter):
     def __init__(
             self,
             coefficients,
-            filter_func=lfilter):
+            filter_func=lfilter,
+            freqz_func=spsignal.freqz):
         """IIR filter
         Initialize a general Filter object.
 
@@ -283,7 +298,8 @@ class FilterSOS(Filter):
     def __init__(
             self,
             coefficients,
-            filter_func=sosfilt):
+            filter_func=sosfilt,
+            freqz_func=spsignal.sosfreqz):
         """
         Initialize a general Filter object.
 
